@@ -1,4 +1,4 @@
-# AI Ecommerce Marketing Agent MVP
+# AI Ecommerce Marketing Agent
 
 这是一个基于 LangChain + LangGraph 的对话式电商营销 Agent 的最小实现，当前使用 MySQL 作为业务数据库。
 
