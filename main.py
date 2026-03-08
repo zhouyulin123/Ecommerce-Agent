@@ -137,7 +137,7 @@ def _format_pretty_response(response: Any) -> str:
 
 
 def main() -> None:
-    """按命令模式分发：单轮对话或启动 API 服务。"""
+    """单轮对话或启动 API 服务。"""
     args = build_parser().parse_args()
     settings = load_settings()
 
