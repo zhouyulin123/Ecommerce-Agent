@@ -24,6 +24,7 @@
 - 多 Agent 协作：
   - Router Agent  路由
   - Feedback Parser Agent 反馈解析
+  - Query Planer Agent 解析自然语言制定查询计划
   - SQL Query Node SQL查询节点
   - User Insight Node  用户行为解析
   - Audience Selection Node 选择目标客户
@@ -31,16 +32,17 @@
   - Poster Prompt Node 海报提示词制作节点
   - Image Generation Node 图像制作节点
   - Response Agent 回应Agent
+  - Message parser Agent 做返回的消息解析
 - 编排框架：
   - LangGraph `StateGraph`
   - LangChain `ChatOpenAI`
 
-![框架图](https://gitee.com/zhouyulin123/node/raw/master/node/框架图.png)
+![框架图](./image/框架图.png)
 
 ## 数据库
 
 - 业务数据直接来自 MySQL `Ecommerce_User_DB`,可通过配置信息
-- 程序会自动创建会话记忆表：
+- 程序会自动创建会话记忆表来记录当前已会话情况：
   - `agent_sessions`
   - `agent_messages`
 
