@@ -22,17 +22,19 @@
 
 - 对话式任务入口
 - 多 Agent 协作：
-  - Router Agent  路由
-  - Feedback Parser Agent 反馈解析
-  - Query Planer Agent 解析自然语言制定查询计划
-  - SQL Query Node SQL查询节点
-  - User Insight Node  用户行为解析
-  - Audience Selection Node 选择目标客户
-  - Copywriting Node  学做节点
+  - Feedback Parser Agent 解析 判断这句是不是“修改意见”或者“确认通过”
+  - Message parser Agent 做返回的消息解析 负责把用户原话做一次归一化解析
+  - Router Agent  路由 判断决定这是哪类任务
+  - Query Planer Agent 解析查询计划 对“查库类任务”补一层计划
+  - Response Agent 回应Agent，把前面所有结构化结果，整理成你最终看到的自然语言输出
+  - SQL Query Node SQL查询节点 查单个用户的画像、浏览记录、购买记录...
+  - User Insight Node  用户行为总结 总结单用户的行为明细。
+  - Audience Selection Node 选择目标客户 查“适合推送给谁”
+  - Copywriting Node  写作节点 
   - Poster Prompt Node 海报提示词制作节点
   - Image Generation Node 图像制作节点
-  - Response Agent 回应Agent
-  - Message parser Agent 做返回的消息解析
+  
+  
 - 编排框架：
   - LangGraph `StateGraph`
   - LangChain `ChatOpenAI`
