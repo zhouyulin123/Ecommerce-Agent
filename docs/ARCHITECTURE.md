@@ -1,6 +1,6 @@
 ﻿# 架构说明
 
-这份文档直接对应当前代码目录，适合对外讲项目，也适合团队内部理解代码边界。
+> 这是一个面向电商营销场景的多 Agent 协作系统。系统由 Supervisor Agent 理解用户目标，Planner Agent 拆解任务，Executor 负责调度，Data / Writing / Creative Agent 各自处理数据、人群、文案和海报任务。所有 Agent 围绕共享状态和会话记忆协作，同时每个 Agent 只拥有自己的专属工具集；在工具层，系统使用 LangChain 的 StructuredTool 和 bind_tools 完成工具选择与调用，从而保证工具边界清晰、扩展路径明确、系统行为可解释。
 
 ## 1. 定义
 
@@ -292,11 +292,8 @@ flowchart TD
 - 上一轮产物
 - 当前待确认产物
 
-## 8. 对外汇报可直接使用的话术
 
-可以直接讲成下面这段：
 
-> 这是一个面向电商营销场景的多 Agent 协作系统。系统由 Supervisor Agent 理解用户目标，Planner Agent 拆解任务，Executor 负责调度，Data / Writing / Creative Agent 各自处理数据、人群、文案和海报任务。所有 Agent 围绕共享状态和会话记忆协作，同时每个 Agent 只拥有自己的专属工具集；在工具层，系统使用 LangChain 的 StructuredTool 和 bind_tools 完成工具选择与调用，从而保证工具边界清晰、扩展路径明确、系统行为可解释。
 
 ## 9. 当前项目优势
 
