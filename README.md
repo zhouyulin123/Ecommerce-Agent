@@ -186,16 +186,16 @@ python main.py serve
 
 ## 推荐阅读顺序
 
-1. [app/runtime/workflow.py](/c:/Users/HP/Desktop/智能客服助手demo/app/runtime/workflow.py)
-2. [app/runtime/state.py](/c:/Users/HP/Desktop/智能客服助手demo/app/runtime/state.py)
-3. [app/agents/supervisor/agent.py](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/supervisor/agent.py)
-4. [app/agents/planner/agent.py](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/planner/agent.py)
-5. [app/agents/executor/agent.py](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/executor/agent.py)
-6. [app/tools](/c:/Users/HP/Desktop/智能客服助手demo/app/tools)
+1. [app/runtime/workflow.py](智能客服助手demo/app/runtime/workflow.py)
+2. [app/runtime/state.py](智能客服助手demo/app/runtime/state.py)
+3. [app/agents/supervisor/agent.py](智能客服助手demo/app/agents/supervisor/agent.py)
+4. [app/agents/planner/agent.py](智能客服助手demo/app/agents/planner/agent.py)
+5. [app/agents/executor/agent.py](智能客服助手demo/app/agents/executor/agent.py)
+6. [app/tools](智能客服助手demo/app/tools)
 
 ## 架构图与讲解
 
-- 架构文档： [docs/ARCHITECTURE.md](/c:/Users/HP/Desktop/智能客服助手demo/docs/ARCHITECTURE.md)
+- 架构文档： [docs/ARCHITECTURE.md](智能客服助手demo/docs/ARCHITECTURE.md)
 
 ## 前端交互页面展示
-
+[前端界面展示.png](前端界面展示.png)
