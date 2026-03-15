@@ -44,9 +44,9 @@ flowchart TD
     SA --> PL[Planner Agent<br/>生成执行计划]
     PL --> EX[Executor<br/>按 task_queue 调度]
 
-    EX --> DA[Data Agent<br/>用户分析 / 人群筛选]
-    EX --> WA[Writing Agent<br/>广告文案生成]
-    EX --> CA[Creative Agent<br/>海报 / 图片生成]
+    EX <--> DA[Data Agent<br/>用户分析 / 人群筛选]
+    EX <--> WA[Writing Agent<br/>广告文案生成]
+    EX <--> CA[Creative Agent<br/>海报 / 图片生成]
     EX --> RA[Response Agent<br/>组织最终回复]
 
     DA --> DT[数据工具集<br/>Data Agent 专属工具]
