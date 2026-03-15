@@ -66,10 +66,10 @@ def load_settings() -> Settings:
     _load_dotenv()
     database_url = os.getenv("DATABASE_URL", "").strip()
     if not database_url:
-        database_url = "mysql+pymysql://root:123456@127.0.0.1:3306/Ecommerce_User_DB?charset=utf8mb4"
+        database_url = "mysql+pymysql://root:??@127.0.0.1:3306/Ecommerce_User_DB?charset=utf8mb4"
 
     return Settings(
-        openai_api_key=os.getenv("OPENAI_API_KEY", "sk-nbflinobibhsbjbxaffcanczyfawlpzbbsrbdcoiixohcmfn").strip(),
+        openai_api_key=os.getenv("OPENAI_API_KEY", "??").strip(),
         openai_api_base=_normalize_openai_base(os.getenv("OPENAI_API_BASE", "https://api.siliconflow.cn/")),
         openai_model=os.getenv("OPENAI_MODEL", "Pro/MiniMaxAI/MiniMax-M2.5").strip(),
         openai_image_model=os.getenv("OPENAI_IMAGE_MODEL", "Qwen/Qwen-Image").strip(),
