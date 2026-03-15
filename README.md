@@ -196,4 +196,6 @@ python main.py serve
 ## 架构图与讲解
 
 - 架构文档： [docs/ARCHITECTURE.md](/c:/Users/HP/Desktop/智能客服助手demo/docs/ARCHITECTURE.md)
-- 项目说明： [AI_Ecommerce_Agent_MVP_Plan_Upgraded.md](/c:/Users/HP/Desktop/智能客服助手demo/AI_Ecommerce_Agent_MVP_Plan_Upgraded.md)
+
+## 前端交互页面展示
+
