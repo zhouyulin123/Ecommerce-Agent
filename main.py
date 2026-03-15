@@ -1,17 +1,17 @@
-import argparse
+﻿import argparse
 import json
 from typing import Any, Dict, List
 
 import uvicorn
 
 from app.api.routes import app
-from app.config import load_settings
-from app.workflow import MarketingWorkflow
+from app.infra.config import load_settings
+from app.runtime.workflow import MarketingWorkflow
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """构建命令行参数解析器。"""
-    parser = argparse.ArgumentParser(description="AI Ecommerce Marketing Agent MVP")
+    """Build the CLI parser."""
+    parser = argparse.ArgumentParser(description="电商营销多智能体系统")
     subparsers = parser.add_subparsers(dest="command")
 
     serve = subparsers.add_parser("serve", help="启动 FastAPI 服务")
@@ -19,18 +19,16 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--port", type=int, default=None)
     serve.add_argument("--reload", action="store_true")
 
-    chat = subparsers.add_parser("chat", help="命令行单轮对话")
+    chat = subparsers.add_parser("chat", help="在命令行执行一轮对话")
     chat.add_argument("--message", required=True)
     chat.add_argument("--session-id", default="")
     chat.add_argument("--json", action="store_true", help="输出精简 JSON")
     chat.add_argument("--json-full", action="store_true", help="输出完整 JSON")
-    chat.add_argument("--pretty", action="store_true", help="输出可读性更高的调试文本")
-
+    chat.add_argument("--pretty", action="store_true", help="输出便于阅读的调试视图")
     return parser
 
 
 def _compact_query_plan(query_plan: Dict[str, Any]) -> Dict[str, Any]:
-    """压缩 query_plan 字段，仅保留高价值信息。"""
     if not query_plan:
         return {}
     filters = query_plan.get("filters") or {}
@@ -44,7 +42,6 @@ def _compact_query_plan(query_plan: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _compact_target_users(target_users: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """压缩目标人群输出，默认仅保留前 10 条关键字段。"""
     rows = target_users or []
     compact_rows = [
         {
@@ -62,7 +59,6 @@ def _compact_target_users(target_users: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def _compact_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """构建精简 JSON 输出，用于测试阶段快速查看。"""
     generated_image = payload.get("generated_image") or {}
     return {
         "session_id": payload.get("session_id"),
@@ -72,10 +68,13 @@ def _compact_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
         "trace": payload.get("trace") or [],
         "parsed_message": payload.get("parsed_message") or {},
         "entities": payload.get("entities") or {},
+        "plan": payload.get("plan") or {},
         "query_plan": _compact_query_plan(payload.get("query_plan") or {}),
         "target_users": _compact_target_users(payload.get("target_users") or []),
         "ad_copy": payload.get("ad_copy"),
         "poster_spec": payload.get("poster_spec"),
+        "tool_calls": payload.get("tool_calls") or [],
+        "execution_steps": payload.get("execution_steps") or [],
         "generated_image": {
             "url": generated_image.get("url"),
             "local_path": generated_image.get("local_path"),
@@ -88,48 +87,62 @@ def _compact_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _format_pretty_response(response: Any) -> str:
-    """把响应对象格式化为更直观的多行文本，便于人工验收。"""
-    lines = [f"session_id: {response.session_id}"]
+    lines = [f"会话ID: {response.session_id}"]
 
     if getattr(response, "parsed_message", None):
         parsed = response.parsed_message or {}
         parse_parts = []
         if parsed.get("normalized_message"):
-            parse_parts.append(f"归一化={parsed['normalized_message']}")
+            parse_parts.append(f"标准化表达={parsed['normalized_message']}")
         if parsed.get("intent_hint"):
             parse_parts.append(f"意图提示={parsed['intent_hint']}")
         parsed_entities = parsed.get("entities") or {}
         if parsed_entities:
             entity_text = ", ".join(f"{k}={v}" for k, v in parsed_entities.items() if v)
             if entity_text:
-                parse_parts.append(f"解析实体={entity_text}")
+                parse_parts.append(f"实体={entity_text}")
         if parse_parts:
             lines.append(f"解析结果: {' | '.join(parse_parts)}")
 
     if response.intent_type:
         lines.append(f"意图: {response.intent_type}")
     if response.trace:
-        lines.append(f"执行节点: {' -> '.join(response.trace)}")
+        lines.append(f"执行轨迹: {' -> '.join(response.trace)}")
     if response.entities:
         entity_parts = [f"{key}={value}" for key, value in response.entities.items() if value]
         if entity_parts:
-            lines.append(f"识别实体: {', '.join(entity_parts)}")
+            lines.append(f"实体: {', '.join(entity_parts)}")
+    if getattr(response, "plan", None):
+        tasks = (response.plan or {}).get("tasks") or []
+        if tasks:
+            lines.append(f"计划: {' -> '.join(tasks)}")
     if response.query_plan:
         filters = response.query_plan.get("filters") or {}
         filter_parts = [f"{key}={value}" for key, value in filters.items() if value]
-        tables = "、".join(response.query_plan.get("tables") or [])
+        tables = ", ".join(response.query_plan.get("tables") or [])
         behaviors = "/".join(response.query_plan.get("behavior_scope") or [])
         plan_parts = []
         if response.query_plan.get("query_goal"):
             plan_parts.append(f"目标={response.query_plan['query_goal']}")
         if tables:
-            plan_parts.append(f"表={tables}")
+            plan_parts.append(f"数据表={tables}")
         if behaviors:
-            plan_parts.append(f"行为={behaviors}")
+            plan_parts.append(f"行为范围={behaviors}")
         if filter_parts:
-            plan_parts.append(f"条件={', '.join(filter_parts)}")
+            plan_parts.append(f"筛选条件={', '.join(filter_parts)}")
         if plan_parts:
             lines.append(f"查询计划: {' | '.join(plan_parts)}")
+    if getattr(response, "tool_calls", None):
+        tool_names = [item.get("tool_name", "") for item in (response.tool_calls or []) if item.get("tool_name")]
+        if tool_names:
+            lines.append(f"工具调用: {', '.join(tool_names)}")
+    if getattr(response, "execution_steps", None):
+        lines.append("执行步骤:")
+        for idx, step in enumerate(response.execution_steps or [], start=1):
+            stage = step.get("stage", "")
+            detail = {key: value for key, value in step.items() if key != "stage" and value not in (None, "", [], {})}
+            detail_text = json.dumps(detail, ensure_ascii=False)
+            lines.append(f"  {idx}. {stage}: {detail_text}")
 
     lines.append("")
     lines.append(response.reply)
@@ -137,7 +150,6 @@ def _format_pretty_response(response: Any) -> str:
 
 
 def main() -> None:
-    """按命令模式分发：单轮对话或启动 API 服务。"""
     args = build_parser().parse_args()
     settings = load_settings()
 
@@ -153,7 +165,7 @@ def main() -> None:
         elif args.pretty:
             print(_format_pretty_response(response))
         else:
-            print(f"session_id: {response.session_id}")
+            print(f"会话ID: {response.session_id}")
             print(response.reply)
         return
 
@@ -164,3 +176,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+

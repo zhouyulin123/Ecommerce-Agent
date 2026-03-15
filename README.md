@@ -1,96 +1,199 @@
-# AI Ecommerce Marketing Agent MVP
+﻿# AI Ecommerce Marketing Multi-Agent System
 
-这是一个基于 LangChain + LangGraph 的对话式电商营销 Agent 的最小实现，当前使用 MySQL 作为业务数据库。
+这是一个面向电商营销场景的多 Agent 协作系统。当前代码已经按 `总控智能体 -> 规划智能体 -> 执行器 -> 专家智能体 -> 专属工具集` 重组完成。
 
-系统支持运营人员直接输入自然语言任务，例如：
+## 项目定位
 
-- “张三最近没怎么消费，看看他最近关注什么，给他写一条广告。”
-- “最近羊毛衫打 6 折，看看谁最近在关注这个商品。”
-- “帮我做一张羊毛衫 6 折的促销海报。”
-- “看看西湖区最近谁在关注商务手表，按关注强度排一下。”
+系统支持三类核心任务：
 
-中间经过大模型拆解任务,规划,推理,工具调用，按任务动态决定，可以返回：
+- 用户行为理解
+- 营销人群筛选
+- 文案 / 海报 / 图片生成
 
-- 某个用户的行为分析结果
-- 某个商品的目标用户群名单
-- 一条广告文案
-- 一份海报 Prompt
-- 或者它们的组合
+典型请求：
 
----
-## 当前能力
+- `张三最近在看什么，帮我给他写一条广告文案`
+- `最近谁在关注羊毛衫，筛出可推送用户`
+- `帮我做一张羊毛衫 6 折海报`
+- `上海地区最近谁在关注羊毛衫，顺便生成一版文案和海报`
 
-- 对话式任务入口
-- 多 Agent 协作：
-  - Router Agent  路由
-  - Feedback Parser Agent 反馈解析
-  - SQL Query Node SQL查询节点
-  - User Insight Node  用户行为解析
-  - Audience Selection Node 选择目标客户
-  - Copywriting Node  学做节点
-  - Poster Prompt Node 海报提示词制作节点
-  - Image Generation Node 图像制作节点
-  - Response Agent 回应Agent
-- 编排框架：
-  - LangGraph `StateGraph`
-  - LangChain `ChatOpenAI`
+## 当前架构
 
-![框架图](https://gitee.com/zhouyulin123/node/raw/master/node/框架图.png)
+```mermaid
+flowchart TD
+    UI[用户入口<br/>API / CLI / Chat] --> WF[MarketingWorkflow<br/>系统总编排入口]
 
-## 数据库
+    WF <--> ST[状态<br/>当前任务现场]
+    WF <--> MEM[记忆<br/>跨轮会话记忆]
 
-- 业务数据直接来自 MySQL `Ecommerce_User_DB`,可通过配置信息
-- 程序会自动创建会话记忆表：
-  - `agent_sessions`
-  - `agent_messages`
+    WF --> SA[Supervisor Agent<br/>理解目标/识别修改]
+    SA --> PL[Planner Agent<br/>生成执行计划]
+    PL --> EX[Executor<br/>按 task_queue 调度]
 
-## 模型 换更强的模型推理、生成的效果会更好
-- 推理模型 `MiniMax-M2.5`
-- 文生图模型 `Qwen-Image`
-- 目前成本问题用的硅基流动转接的Api,复用同一套 `OPENAI_API_KEY` 和 `OPENAI_API_BASE`
-- 海报任务会先生成 `poster_prompt`，再尝试直接生成图片 URL，并保存到当前项目目录
+    EX --> DA[Data Agent<br/>用户分析/人群筛选]
+    EX --> WA[Writing Agent<br/>广告文案生成]
+    EX --> CA[Creative Agent<br/>海报/图片生成]
+    EX --> RA[Response Agent<br/>组织最终回复]
 
-## Prompt
-- 目前提示词还没有很完善，主要先把流程跑通，可根据需求去修改
+    DA --> DT[数据工具集<br/>数据 Agent 专属工具集]
+    CA --> CT[创意工具集<br/>创意 Agent 专属工具集]
 
-## 启动
-1. 在 `.env` 中填写：
-   - `DATABASE_URL`
-   - `OPENAI_API_KEY`
-   - 如需改图像模型，可改 `OPENAI_IMAGE_MODEL`
-2. 启动服务
+    DT --> SQL[SQLQueryTool<br/>查单用户行为]
+    DT --> AUD[AudienceSelectionTool<br/>筛目标人群]
+    CT --> IMG[ImageGenerationTool<br/>生成营销图片]
+```
+
+看图方式：
+
+- `MarketingWorkflow` 是总入口，负责驱动整个系统
+- `状态` 和 `记忆` 是所有 Agent 协作的上下文基础
+- `Supervisor -> Planner -> Executor` 是上层编排链
+- `Data / Writing / Creative / Response` 是领域执行 Agent
+- `专属工具集` 表示工具按 Agent 隔离，不是全局共享
+- 工具选择与调用基于 LangChain 的 `StructuredTool + bind_tools`
+
+## 目录结构
+
+```text
+app/
+├─ runtime/
+│  ├─ workflow.py
+│  └─ state.py
+├─ infra/
+│  ├─ config.py
+│  ├─ database.py
+│  └─ llm.py
+├─ agents/
+│  ├─ supervisor/
+│  ├─ planner/
+│  ├─ executor/
+│  ├─ data/
+│  ├─ writing/
+│  ├─ creative/
+│  └─ response/
+├─ tools/
+│  ├─ base.py
+│  ├─ data/
+│  └─ creative/
+├─ prompts/
+├─ api/
+└─ utils/
+```
+
+## Agent 边界
+
+### Supervisor Agent
+- 负责理解用户目标
+- 识别新任务 / 修改 / 确认
+- 产出初始任务列表
+
+目录：
+- [app/agents/supervisor](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/supervisor)
+
+### Planner Agent
+- 负责生成 `execution_plan`
+- 负责生成 `query_plan`
+- 规范化 `task_queue`
+
+目录：
+- [app/agents/planner](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/planner)
+
+### Executor
+- 不做业务理解
+- 只负责根据 `task_queue` 调度 Agent
+
+目录：
+- [app/agents/executor](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/executor)
+
+### Data Agent
+- 查询单用户行为
+- 筛选目标人群
+- 生成轻量洞察
+
+目录：
+- [app/agents/data](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/data)
+
+### Writing Agent
+- 生成广告文案
+- 不直接访问数据库
+
+目录：
+- [app/agents/writing](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/writing)
+
+### Creative Agent
+- 生成海报提示词
+- 触发图片生成工具
+
+目录：
+- [app/agents/creative](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/creative)
+
+### Response Agent
+- 汇总最终输出
+- 面向用户组织回复文本
+
+目录：
+- [app/agents/response](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/response)
+
+## Tool 设计
+
+当前是按 Agent 隔离工具，而不是全局开放：
+
+- `Data Agent` 只使用 `数据工具集`
+- `Creative Agent` 只使用 `创意工具集`
+- `Writing Agent` 当前不直接访问数据库工具
+
+工具调用方式：
+
+- 每个 `toolbelt` 内部把工具封装成 LangChain `StructuredTool`
+- Agent 在运行时通过 `LLMClient.choose_tool_call()` 调用 `bind_tools`
+- 模型先选工具，再由 Agent 执行工具并记录 `ToolCallRecord`
+- 如果模型未返回有效工具，会回退到任务默认工具，保证稳定性
+
+工具目录：
+- [app/tools](/c:/Users/HP/Desktop/智能客服助手demo/app/tools)
+- [app/tools/data](/c:/Users/HP/Desktop/智能客服助手demo/app/tools/data)
+- [app/tools/creative](/c:/Users/HP/Desktop/智能客服助手demo/app/tools/creative)
+
+工具契约定义：
+- [app/tools/base.py](/c:/Users/HP/Desktop/智能客服助手demo/app/tools/base.py)
+
+## 状态与记忆
+
+运行时状态定义：
+- [app/runtime/state.py](/c:/Users/HP/Desktop/智能客服助手demo/app/runtime/state.py)
+
+核心概念：
+
+- `状态`：当前任务现场
+- `记忆`：跨轮会话上下文
+- `ToolCallRecord`：工具调用轨迹
+
+## 启动方式
+
+### CLI
 
 ```bash
+python main.py chat --message "帮我写一条羊毛衫 6 折广告文案" --pretty
+python main.py chat --message "看看谁在关注羊毛衫" --json
 python main.py serve
 ```
-## API
+
+### API
 
 - `GET /health`
 - `POST /api/chat`
 - `GET /api/sessions/{session_id}`
 
-海报任务响应会额外返回 `generated_image`，其中包含图片 URL、本地保存路径、模型名和生成参数。
+## 推荐阅读顺序
 
-## CLI 调试
+1. [app/runtime/workflow.py](/c:/Users/HP/Desktop/智能客服助手demo/app/runtime/workflow.py)
+2. [app/runtime/state.py](/c:/Users/HP/Desktop/智能客服助手demo/app/runtime/state.py)
+3. [app/agents/supervisor/agent.py](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/supervisor/agent.py)
+4. [app/agents/planner/agent.py](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/planner/agent.py)
+5. [app/agents/executor/agent.py](/c:/Users/HP/Desktop/智能客服助手demo/app/agents/executor/agent.py)
+6. [app/tools](/c:/Users/HP/Desktop/智能客服助手demo/app/tools)
 
-```bash
-python main.py chat --json --message "上海普陀区儿童积木有新产品了，帮我写个广告语，并告诉我我都需要给谁推送"
-result1：
-"""
-建议推送给这些用户：吴欣瑶(上海市普陀区, 购买1次)、赵宁(上海市普陀区, 浏览1次)
-广告语：普陀区儿童积木推荐 / 适合3-6岁宝宝，安全材质趣味拼搭，在家动手又动脑 / 了解详情
-"""
+## 架构图与讲解
 
-python main.py chat --message "帮我做一张羊毛衫6折的促销海报，查看下上海地区我该给谁推送"
-result2：
-"""
-建议推送给这些用户：褚亦(上海市闵行区, 购买1次)、费可诺(上海市浦东新区, 购买1次)、伍浩(上海市杨浦区, 购买1次)、喻彤雪(上海市徐汇区, 购买1次)、邹雅(上海市闵  区, 购买1次)、傅欣(上海市宝山区, 浏览1次)、
-行区, 购买1次)、傅欣(上海市宝山区, 浏览1次)、魏辰(上海市黄浦区, 浏览1次)、倪浩(上海市黄浦区, 浏览1次)、任文(上海市宝山区, 浏览1次)、毕一(上海市嘉定区, 浏览1次)
-广告语：羊毛衫6折起 / 上海限定·精选羊绒羊毛系列 / 立即查看
-海报提示词已生成，建议配色：驼色、深酒红、金色、暖白、浅灰、墨绿点缀
-"""
-## 测试
-
-```bash
-python -m unittest tests.test_workflow
-```
+- 架构文档： [docs/ARCHITECTURE.md](/c:/Users/HP/Desktop/智能客服助手demo/docs/ARCHITECTURE.md)
+- 项目说明： [AI_Ecommerce_Agent_MVP_Plan_Upgraded.md](/c:/Users/HP/Desktop/智能客服助手demo/AI_Ecommerce_Agent_MVP_Plan_Upgraded.md)

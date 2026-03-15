@@ -1,0 +1,183 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>电商营销多智能体工作台</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="backdrop"></div>
+  <div class="grain"></div>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <p class="eyebrow">Marketing Multi-Agent Workbench</p>
+        <h1>电商营销多智能体工作台</h1>
+        <p class="brand-copy">把任务理解、规划、执行和产出收进同一块运营工作台。</p>
+      </div>
+      <div class="topbar-panels">
+        <div class="status-panel">
+          <span class="status-label">当前会话</span>
+          <div class="status-row">
+            <input id="session-id-input" class="session-input" type="text" placeholder="输入会话 ID 后可加载">
+            <button id="load-session-btn" class="ghost-button" type="button">加载会话</button>
+          </div>
+          <p id="session-hint" class="muted-text">可切换历史会话，新建任务不会覆盖其它任务。</p>
+        </div>
+        <div class="status-panel compact">
+          <span class="status-label">服务状态</span>
+          <div class="health-grid health-grid-wide">
+            <div>
+              <p class="metric-label">文本模型</p>
+              <p id="health-llm" class="metric-value">检测中</p>
+            </div>
+            <div>
+              <p class="metric-label">图片模型</p>
+              <p id="health-image" class="metric-value">检测中</p>
+            </div>
+            <div>
+              <p class="metric-label">推理模型名</p>
+              <p id="health-text-model" class="metric-value small">-</p>
+            </div>
+            <div>
+              <p class="metric-label">图像模型名</p>
+              <p id="health-image-model" class="metric-value small">-</p>
+            </div>
+          </div>
+        </div>
+        <button id="new-session-btn" class="primary-button" type="button">新建任务</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="column left-column">
+        <section class="panel session-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">Session</p>
+              <h2>对话与任务入口</h2>
+            </div>
+            <span id="request-count" class="badge">0 条消息</span>
+          </div>
+
+          <div class="session-list-block">
+            <div class="subsection-head">
+              <h3>会话列表</h3>
+              <span id="session-count" class="badge light">0 个会话</span>
+            </div>
+            <div id="session-list" class="session-list"></div>
+          </div>
+
+          <div id="message-list" class="message-list">
+            <div class="message assistant">
+              <div class="message-role">系统</div>
+              <div class="message-body">
+                输入营销任务，我会展示规划、执行步骤、工具调用和产出结果。
+              </div>
+            </div>
+          </div>
+          <div class="quick-actions">
+            <button type="button" class="quick-chip" data-message="看看谁在关注羊毛衫">查目标人群</button>
+            <button type="button" class="quick-chip" data-message="帮我写一条羊毛衫6折的广告文案">生成广告文案</button>
+            <button type="button" class="quick-chip" data-message="帮我做一张羊毛衫6折海报">生成海报</button>
+            <button type="button" class="quick-chip" data-message="上海地区最近谁在关注羊毛衫，顺便生成一版文案和海报">组合营销任务</button>
+            <button type="button" class="quick-chip" data-message="确认这版文案">确认当前版本</button>
+            <button type="button" class="quick-chip" data-message="文案再柔和一点">重写文案</button>
+          </div>
+          <form id="chat-form" class="composer">
+            <label class="composer-label" for="message-input">输入任务</label>
+            <textarea id="message-input" rows="5" placeholder="例如：上海地区最近谁在关注羊毛衫，顺便生成一版文案和海报"></textarea>
+            <div class="composer-actions">
+              <span id="composer-status" class="muted-text">等待输入</span>
+              <button id="send-btn" class="primary-button" type="submit">发送任务</button>
+            </div>
+          </form>
+        </section>
+      </aside>
+
+      <section class="column middle-column">
+        <section class="panel timeline-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">Execution</p>
+              <h2>Agent 执行过程</h2>
+            </div>
+            <span id="trace-badge" class="badge soft">等待执行</span>
+          </div>
+          <div id="timeline" class="timeline"></div>
+        </section>
+      </section>
+
+      <aside class="column right-column">
+        <section class="panel result-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">Output</p>
+              <h2>结果与状态</h2>
+            </div>
+          </div>
+
+          <div class="result-stack">
+            <article class="result-card">
+              <div class="card-title-row">
+                <h3>查询计划</h3>
+                <span id="query-mode-badge" class="badge light">-</span>
+              </div>
+              <dl id="query-plan-card" class="definition-list empty-card"></dl>
+            </article>
+
+            <article class="result-card">
+              <div class="card-title-row">
+                <h3>人群结果</h3>
+                <span id="audience-count-badge" class="badge light">0 人</span>
+              </div>
+              <div id="audience-card" class="empty-card">暂无人群结果</div>
+            </article>
+
+            <article class="result-card">
+              <div class="card-title-row">
+                <h3>文案结果</h3>
+                <span id="copy-badge" class="badge light">未生成</span>
+              </div>
+              <div id="copy-card" class="empty-card">暂无文案结果</div>
+            </article>
+
+            <article class="result-card">
+              <div class="card-title-row">
+                <h3>海报与图片</h3>
+                <span id="creative-badge" class="badge light">未生成</span>
+              </div>
+              <div id="creative-card" class="empty-card">暂无海报或图片结果</div>
+            </article>
+
+            <article class="result-card memory-card">
+              <div class="card-title-row">
+                <h3>记忆状态</h3>
+                <span class="badge light">Memory</span>
+              </div>
+              <div id="memory-card" class="definition-list empty-card">暂无记忆状态</div>
+            </article>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <template id="timeline-item-template">
+    <article class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-content">
+        <div class="timeline-head">
+          <h3 class="timeline-title"></h3>
+          <span class="timeline-index"></span>
+        </div>
+        <div class="timeline-detail"></div>
+      </div>
+    </article>
+  </template>
+
+  <script src="./app.js"></script>
+</body>
+</html>

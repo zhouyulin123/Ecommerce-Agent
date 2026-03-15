@@ -1,4 +1,4 @@
-"""地址文本归一化工具，供路由与 SQL 过滤复用。"""
+﻿"""地址文本归一化工具，供路由与 SQL 过滤复用。"""
 
 import re
 
@@ -11,7 +11,7 @@ def strip_location_whitespace(value: str) -> str:
 
 
 def normalize_location_text(value: str) -> str:
-    """移除地址中的行政区划后缀，提升“普陀区/上海普陀区/上海市普陀区”匹配鲁棒性。"""
+    """移除地址中的行政区划后缀，提升地点匹配鲁棒性。"""
     normalized = strip_location_whitespace(value)
     for marker in LOCATION_MARKERS:
         normalized = normalized.replace(marker, "")
@@ -19,7 +19,7 @@ def normalize_location_text(value: str) -> str:
 
 
 def canonical_location(value: str) -> str:
-    """将完整地址压缩为更实用的查询词（例如“上海市普陀区” -> “普陀区”）。"""
+    """将完整地址压缩为更实用的查询词。"""
     collapsed = strip_location_whitespace(value)
     for marker in LOCATION_MARKERS:
         if marker in collapsed:

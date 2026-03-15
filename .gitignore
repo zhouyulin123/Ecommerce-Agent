@@ -2,3 +2,6 @@
 __pycache__/
 .pytest_cache/
 *.pyc
+.idea/
+*.iml
+image/generated_image_*.png
